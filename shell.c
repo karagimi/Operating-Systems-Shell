@@ -27,12 +27,17 @@ int main() {
     char input[SIZE];
     int status;
     char* argv[MAX_ARGS];
+    char *user;
+    char *token;
     while(TRUE) {
         type_prompt();
-        argv[0]="";
-        argv[1]="";
-
+        int i=0;
         int ch,count=0;
+
+        memset(input,0,strlen(input));
+        argv[0]=NULL;
+        argv[1]=NULL;
+
         while((ch=getchar())!='\n') {
             if(count==SIZE) {
                 break;
@@ -40,13 +45,40 @@ int main() {
             input[count]=ch;
             count++;
         }
-        if(strcmp(input,"ls")==0) {
+
+        token=strtok(input," ");        /*ls*/
+        if(strcmp(token,"ls")==0) {
             argv[0]="/bin/ls";
+            token=strtok(NULL," ");
+            printf("%s",token);
+            argv[1]=token;
+        }
+
+        if(strcmp(input,"exit")==0) {   /*exit*/
+            exit(0);
+        }
+
+        if(strcmp(token,"cd")==0) {     /*cd*/
+        printf("%ld",strlen(input));
+            if(strlen(input)!=2) {
+                token=strtok(NULL," ");
+            }
+
+            if(strlen(input)==2) {
+                chdir("/");
+            }
+            argv[0]="/bin/chdir";
+            argv[1]=token;
+        }
+
+        if(strcmp(input,"pwd")==0) {    /*pwd*/
+            argv[0]="/bin/pwd";
             argv[1]=NULL;
         }
 
-        if(strcmp(input,"exit")==0) {
-            exit(0);
+        if(strcmp(input,"whoami")==0) { /*whoami*/
+            user=getlogin();
+            printf("%s",user);
         }
 
         pid_t pid=fork();
@@ -56,9 +88,8 @@ int main() {
             exit(EXIT_FAILURE);
         }else if(pid==0) {
              /*Child code*/
-            if (execv(argv[0], argv) < 0) {
-                printf("\nCould not execute command..");
-            }
+            execv(argv[0], argv);
+            printf("\nCould not execute command..");
             exit(0);
         }else {
             /*Parent code*/
@@ -86,3 +117,6 @@ void type_prompt() {
     printf("$ ");
 }
 
+void fork_proccess(char *input,char **args) {
+
+}
