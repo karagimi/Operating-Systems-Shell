@@ -54,14 +54,18 @@ int main() {
         strcpy(input2,input);
 
         if(strchr(input,';')==NULL) {
-            if(strchr(input,'>')||(strchr(input,'<'))!=NULL) {
-                
+            pid_t pid=fork();
+
+            if(pid==-1) {
+                perror("Fork error");
+                exit(EXIT_FAILURE);
+            }else if(pid==0) {
+                /*Child code*/
+                if(strchr(input,'>')||(strchr(input,'<'))!=NULL) {
              /*   int file=open("test.txt",O_WRONLY | O_CREAT,0777);
                 if(file == -1) {
                     return 0;
                 }*/
-
-
             }
             token=strtok(input," "); 
 
@@ -76,14 +80,14 @@ int main() {
                     argv[2]=NULL;
                 }
             }
-
+            
             if(strcmp(input,"exit")==0) {   /*exit*/
                 exit(0);
             }
 
             if(strcmp(token,"cd")==0) {     /*cd*/
                 if(strlen(input2)==2) {
-                chdir("/");
+                    /*chdir("/");*/
                 }else if(strlen(input2)>2) {
                     token=strtok(NULL," ");
                     strcpy(directory,token);
@@ -115,14 +119,6 @@ int main() {
                 argv[2]=NULL;
             }
 
-
-            pid_t pid=fork();
-
-            if(pid==-1) {
-                perror("Fork error");
-                exit(EXIT_FAILURE);
-            }else if(pid==0) {
-                /*Child code*/
                 execv(argv[0], argv);
             /* printf("\nCould not execute command..\n");*/
                 exit(0);
