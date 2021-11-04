@@ -29,6 +29,8 @@ char **get_sequential_command(char *input);
 
 void remove_spaces(char *input);
 
+char **get_redirection_command(char *input);
+
 int main() {
     char input[SIZE];
     char *argv[SIZE];
@@ -54,34 +56,64 @@ int main() {
         }
         input[count]='\0';
         if(strchr(input,';')==NULL) { 
-            command=get_command(input);
-            if(strcmp(command[0],"cd") == 0 ){
-                if(command[1]==NULL) {
-                    chdir("/");
-                }else{
-                    chdir(command[1]);
+            if(strchr(input,'>')!=NULL || strchr(input,'<')!=NULL) {
+                command=get_redirection_command(input);
+                pid_t pidred=fork();
+
+                if(pidred==-1) {
+                    perror("Fork error");
+                    exit(EXIT_FAILURE);
+                }else if(pidred==0) {
+                    /*Child code*/
+
+                    int file=open(command[1],O_WRONLY | O_CREAT | O_TRUNC,0777);
+                    if(file==-1) {
+                        return 0;
+                    }
+
+                    int file2=dup2(file,STDOUT_FILENO);
+                    close(file);
+
+                    command[1]=NULL;
+
+                    execvp(command[0], command);
+                    printf("\nCould not execute command..\n");
+                    exit(0);
+                }else {
+                    /*Parent code*/
+                    wait(NULL);
+                }
+
+            }else{
+                command=get_command(input);
+                if(strcmp(command[0],"cd") == 0 ){
+                    if(command[1]==NULL) {
+                        chdir("/");
+                    }else{
+                        chdir(command[1]);
+                    }
+                }
+
+                if(strcmp(command[0],"exit")==0) {
+                    exit(0);
+                }
+
+                pid_t pid=fork();
+
+                if(pid==-1) {
+                    perror("Fork error");
+                    exit(EXIT_FAILURE);
+                }else if(pid==0) {
+                    /*Child code*/
+                    execvp(command[0], command);
+                    printf("\nCould not execute command..\n");
+                    exit(0);
+                }else {
+                    /*Parent code*/
+                    wait(NULL);
                 }
             }
-
-            if(strcmp(command[0],"exit")==0) {
-                exit(0);
-            }
-
-            pid_t pid=fork();
-
-            if(pid==-1) {
-                perror("Fork error");
-                exit(EXIT_FAILURE);
-            }else if(pid==0) {
-                /*Child code*/
-                execvp(command[0], command);
-                printf("\nCould not execute command..\n");
-                exit(0);
-            }else {
-                /*Parent code*/
-                wait(NULL);
-            }
-        }else {
+        }else{
             
             index=0;
             command_count=0;
@@ -109,20 +141,21 @@ int main() {
                     }
                     argv[count]=NULL;
                     /*printf("command[index] = %s\n",command[index]);*/
-                    
+                        
                     execvp(command[index],argv);
-                   /* printf("\nCould not execute command..\n");*/
-                    exit(0);
+                    /* printf("\nCould not execute command..\n");*/
+                        exit(0);
                 }else{
                     /*Parent code*/
                     wait(NULL);
                 }
                 index++;
             }
-            /*free(command);*/
+                /*free(command);*/
         }
     }
 }
+
 
 /*Prints the prompt to get a new command*/
 void type_prompt() {
@@ -183,4 +216,23 @@ void remove_spaces(char *s) {
             ++d;
         }
     }while(*s++ = *d++);
+}
+
+
+char **get_redirection_command(char *input) {
+    char **command=malloc(100*sizeof(char *));
+    char *parsed;
+    int index=0;
+    parsed=strtok(input,">");
+    while(parsed!=NULL) {
+        command[index]=parsed;
+        index++;
+        if((parsed!=NULL)) {
+            remove_spaces(parsed);
+        }
+        printf("parsed = %s\n",parsed);
+        parsed=strtok(NULL,">");
+    }
+    command[index]=NULL;
+    return command;
 }
