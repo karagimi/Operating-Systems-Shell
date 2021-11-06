@@ -1,0 +1,4 @@
+karagimi
+a.out
+data.txt
+shell.c
