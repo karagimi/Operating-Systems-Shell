@@ -346,11 +346,10 @@ char **get_sequential_command(char *input) {
     while(parsed!=NULL) {
         command[index]=parsed;
         index++;
-        printf("parsed = %s\n",parsed);
         parsed=strtok(NULL,";");
-      /*  if(parsed!=NULL) {
+        if(parsed!=NULL) {
             remove_spaces(parsed);
-        }*/
+        }
     }
     command[index]=NULL;
     return command;
@@ -371,6 +370,10 @@ void remove_spaces(char *s) {
                 ++d;
             }
         }while(*s++ = *d++);
+    }else {
+        for(i=0;i<strlen(d);i++) {
+            d[i]=d[i+1];
+        }
     }
 }
 
