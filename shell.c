@@ -39,6 +39,8 @@ char **get_pipe1_command(char *input);
 
 char **get_pipe2_command(char *input);
 
+char **get_multipipe_command(char *input);
+
 int main() {
     char input[SIZE];
     char input2[SIZE];
@@ -54,11 +56,13 @@ int main() {
     int redirection_count;
     int pipe_count;
     int i=0;
+    int count_pipe_command=0;
     while(TRUE) {
 
         type_prompt();
         int i=0;
         int ch,count=0;
+        int count_pipe_command=0;
 
         while((ch=getchar())!='\n') {
             if(count==SIZE) {
@@ -228,27 +232,49 @@ int main() {
                         waitpid(pidpipe,NULL,0);
                         waitpid(pidpipe2,NULL,0);
                     }else{
+                        command=get_multipipe_command(input);
+
                         int fd[pipe_count][2];
                         int i=0;
                         int commands_number=pipe_count+1;
                         pid_t pid;
-                        for(int i=0;i<pipe_count;i++) {
-                            if(pipe(fd[i])<0) {
-                                return -1;
-                            }
-                        }
-                        
-                        for(int i=0;commands_number;i++) {
-                            pid=fork();
+                        index=0;
 
-                            if(pid<0) {
-                                perror("Fork error");
+                        for(i=0;i<pipe_count;i++) {
+                            if(pipe(fd[i])<0) {
+                                perror("Pipe error");
                                 exit(EXIT_FAILURE);
                             }
-
-                          /*  if()*/
                         }
-  
+
+
+                        while(index<commands_number) {
+                            int count=0;
+                            pid_t pid = fork();
+                            if(pid==-1) {
+                                perror("Fork error");
+                                exit(EXIT_FAILURE);
+                            }else if(pid==0) {
+                                token=strtok(command[index]," ");
+                                printf("command[%d] = %s\n",index,command[index]);
+                                while(token!=NULL) {
+                                    token=strtok(NULL," ");
+                                    argv[count]=token;
+                                    count++;
+                                }
+                                argv[count]=NULL;
+
+                    
+                                dup2(fd[index][1],STDOUT_FILENO);
+
+                                execvp(command[index],argv);
+                            }else{
+                                wait(NULL);
+                                
+                            }
+                            index++;
+                        }
+        
                     }
 
                 }else {
@@ -363,6 +389,7 @@ char **get_sequential_command(char *input) {
     parsed=strtok(input,";");
     while(parsed!=NULL) {
         command[index]=parsed;
+     //   printf("command[%d] = %s\n",index,command[index]);
         index++;
         parsed=strtok(NULL,";");
         if(parsed!=NULL) {
@@ -469,6 +496,7 @@ char **get_pipe1_command(char *input) {
     parsed=strtok(input," ");
     while(strchr(parsed,'|')==NULL) {
         command[index]=parsed;
+        printf("%s\n",command[index]);
         index++;
         parsed=strtok(NULL," ");
     }
@@ -485,6 +513,23 @@ char **get_pipe2_command(char *input) {
     while(parsed!=NULL) {
         parsed=strtok(NULL," ");
         command[index]=parsed;
+        index++;
+    }
+    command[index]=NULL;
+    return command;
+}
+
+char **get_multipipe_command(char *input) {
+    char **command=malloc(100*sizeof(char *));
+    char *parsed;
+    int index=0;
+    parsed=strtok(input,"|");
+    while(parsed!=NULL) {
+        command[index]=parsed; 
+        parsed=strtok(NULL,"|");
+        if((parsed!=NULL)) {
+            remove_spaces(parsed);
+        }
         index++;
     }
     command[index]=NULL;
