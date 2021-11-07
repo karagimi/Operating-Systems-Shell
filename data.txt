@@ -1,4 +1,9 @@
-karagimi
-a.out
-data.txt
-shell.c
+total 36
+drwxrwxrwx 1 karagimi karagimi   512 Nov  6 21:51 .
+drwxrwxrwx 1 karagimi karagimi   512 Oct 31 11:29 ..
+drwxrwxrwx 1 karagimi karagimi   512 Nov  6 20:31 .git
+-rwxrwxrwx 1 karagimi karagimi    12 Nov  6 20:31 .gitignore
+-rwxrwxrwx 1 karagimi karagimi 17864 Nov  6 21:47 a.out
+-rwxrwxrwx 1 karagimi karagimi     0 Nov  6 21:52 data.txt
+-rwxrwxrwx 1 karagimi karagimi 13844 Nov  6 21:45 shell.c
+"hello world"

@@ -1,5 +1,5 @@
 /*
-    @author: Michalis Karagiannakis csd4355
+    @author: Michalis Karagiannakis csd4355@csd.uoc.gr
 */
 
 /*pipes*/
@@ -228,8 +228,26 @@ int main() {
                         waitpid(pidpipe,NULL,0);
                         waitpid(pidpipe2,NULL,0);
                     }else{
+                        int fd[pipe_count][2];
+                        int i=0;
+                        int commands_number=pipe_count+1;
+                        pid_t pid;
+                        for(int i=0;i<pipe_count;i++) {
+                            if(pipe(fd[i])<0) {
+                                return -1;
+                            }
+                        }
+                        
+                        for(int i=0;commands_number;i++) {
+                            pid=fork();
 
-                        printf("MULTIPLE PIPES LMAO");
+                            if(pid<0) {
+                                perror("Fork error");
+                                exit(EXIT_FAILURE);
+                            }
+
+                          /*  if()*/
+                        }
   
                     }
 
@@ -370,7 +388,7 @@ void remove_spaces(char *s) {
                 ++d;
             }
         }while(*s++ = *d++);
-    }else {
+    }else if(count>1){
         for(i=0;i<strlen(d);i++) {
             d[i]=d[i+1];
         }
