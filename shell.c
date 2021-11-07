@@ -264,8 +264,19 @@ int main() {
                                 }
                                 argv[count]=NULL;
 
-                    
-                                dup2(fd[index][1],STDOUT_FILENO);
+                                if(index!=commands_number) {
+                                    if(dup2(fd[index][1],STDOUT_FILENO)<0) {
+                                        perror("Dup2 error");
+                                        exit(EXIT_FAILURE);
+                                    }
+                                }
+
+                                if(index!=0) {
+                                    if(dup2(fd[index][0],STDIN_FILENO)<0) {
+                                        perror("Dup2 error");
+                                        exit(EXIT_FAILURE);
+                                    }
+                                }
 
                                 execvp(command[index],argv);
                             }else{
