@@ -2,7 +2,6 @@
     @author: Michalis Karagiannakis csd4355@csd.uoc.gr
 */
 
-/*pipes*/
 #define _GNU_SOURCE
 #include <fcntl.h>
 
@@ -23,22 +22,31 @@
 /*Prints the prompt to get a new command*/
 void type_prompt();
 
+/*returns the command*/
 char **get_command(char *input);
 
+/*returns the sequential command*/
 char **get_sequential_command(char *input);
 
+/*removes the spaces in the string that is given*/
 void remove_spaces(char *input);
 
+/*returns the redirection(>) command*/
 char **get_redirection_command_out(char *input);
 
+/*returns the redirection(>>) command*/
 char **get_redirection_command_out_double(char *input);
 
+/*returns the redirection(<) command*/
 char **get_redirection_command_in(char *input);
 
+/*returns the first command of a single pipe*/ 
 char **get_pipe1_command(char *input);
 
+/*returns the second command of a single pipe*/
 char **get_pipe2_command(char *input);
 
+/*returns the multipipe command*/
 char **get_multipipe_command(char *input);
 
 int main() {
@@ -48,6 +56,8 @@ int main() {
     char **command;
     char **command2;
     char *token;
+    char *tokencd;
+    char *argv2[SIZE];
     char *user;
     int index;
     int count=0;
@@ -64,12 +74,19 @@ int main() {
         int ch,count=0;
         int count_pipe_command=0;
 
+        int spaces = 0;
         while((ch=getchar())!='\n') {
             if(count==SIZE) {
                 break;
             }
+            if(ch == ' '){
+                spaces++;
+            }
             input[count]=ch;
             count++;
+        }
+        if(spaces == count){
+            continue;
         }
         input[count]='\0';
 
@@ -248,7 +265,6 @@ int main() {
                             }
                         }
 
-
                         while(index<commands_number) {
                             int count=0;
                             pid_t pid = fork();
@@ -260,55 +276,42 @@ int main() {
                                 while(token!=NULL) {
                                     argv[count]=token;
                                     token=strtok(NULL," ");
-                                   // printf("argv[%d] = %s\n",count,argv[count]);
                                     count++;
                                 }
                                 argv[count]=NULL;
 
-                              //  printf("command = %s\n",command[index]);
-
-                                
-
                                 if(index!=commands_number-1) {
-                                    if(dup2(fd[index][1],1)<0) {
-                                        printf("index = %d\n",index);
+                                    if(dup2(fd[index][1],STDOUT_FILENO)<0) {
                                         perror("Dup2 error");
                                         exit(EXIT_FAILURE);
                                     }
                                 }
 
                                 if(index!=0) {
-                                    if(dup2(fd[index-1][0],0)<0) {
-                                        printf("index STDIN = %d\n",index);
+                                    if(dup2(fd[index-1][0],STDIN_FILENO)<0) {
                                         perror("Dup2 error STDIN");
                                         exit(EXIT_FAILURE);
                                     }
                                 }
-
-
-                               /* for(i=0;i<commands_number;i++) {
-                                    close(fd[i][0]);
-                                    close(fd[i][1]);
-                                }*/
 
                                if(execvp(command[index],argv)<0) {
                                    perror(command[index]);
                                    exit(EXIT_FAILURE);
                                }
 
-
-
                             }else{
-                              /*  for(i=0;i<pipe_count;i++) {
-                                    wait(NULL);
-                                }*/
+
+                                if(index==0) {
+                                    close(fd[index][1]);
+                                }
+
+                                if(index!=0) {
+                                    close(fd[index-1][0]);
+                                    close(fd[index][1]);
+                                }
 
                                 wait(NULL);
 
-                             /*   for(i=0;i<commands_number;i++) {
-                                    close(fd[i][0]);
-                                    close(fd[i][1]);
-                                }*/
                             }
                            index++;
                         }
@@ -337,7 +340,7 @@ int main() {
                     }else if(pid==0) {
                         /*Child code*/
                         execvp(command[0], command);
-                        printf("\nCould not execute command..\n");
+                        //  printf("\nCould not execute command..\n");
                         exit(0);
                     }else {
                         /*Parent code*/
@@ -357,6 +360,19 @@ int main() {
             }
             while(index<command_count) {
                 count=0;
+
+                if(command[index][0] == 'c' && command[index][1] == 'd'){
+                    token = strtok(command[index], " ");
+                    token = strtok(NULL, " ");
+                    printf("%s\n",token);
+                    chdir(token);
+                }
+
+                if(strcmp(command[index],"exit")==0) {
+                    exit(0);
+                }
+                
+
                 pid_t pid=fork();
 
                 if(pid==-1) {
@@ -365,25 +381,22 @@ int main() {
                 }else if(pid==0) {
                     /*Child code*/
                     token=strtok(command[index]," ");
-                  //  printf("command[%d] = %s\n",index,command[index]);
                     while(token!=NULL) {
                         argv[count]=token;
-                      //  printf("Sequence argv[%d] = %s\n",count,argv[count]);
                         token=strtok(NULL," ");
                         count++;
                     }
                     argv[count]=NULL;
             
                     execvp(command[index],argv);
-                    printf("\nCould not execute command..\n");
-                    exit(0);
+                       // printf("\nCould not execute command..\n");
+                        exit(0);
                 }else{
                     /*Parent code*/
                     wait(NULL);
                 }
                 index++;
             }
-                /*free(command);*/
         }
     }
 }
@@ -394,10 +407,10 @@ void type_prompt() {
     char dir[SIZE];
     char *user;
 
-   /* user=getlogin();*/
+    user=getlogin();
     user="karagimi";
     if(!user) {
-      /*  perror("getlogin() error");*/
+        perror("getlogin() error");
     }
     getcwd(dir,SIZE);
 
@@ -427,10 +440,8 @@ char **get_sequential_command(char *input) {
     char *parsed;
     int index=0;
     parsed=strtok(input,";");
-  //  printf("parsed = %s\n",parsed);
     while(parsed!=NULL) {
         command[index]=parsed;
-      //  printf("command[%d] = %s\n",index,command[index]);
         index++;
         parsed=strtok(NULL,";");
         if(parsed!=NULL) {
@@ -560,21 +571,18 @@ char **get_pipe2_command(char *input) {
 }
 
 char **get_multipipe_command(char *input) {
-    printf("input = %s\n",input);
     char **command=malloc(100*sizeof(char *));
     char *parsed;
     int index=0;
+    int length=strlen(input);
     parsed=strtok(input,"|");
-  //  printf("parsed = %s\n",parsed);
     while(parsed!=NULL) {
         command[index]=parsed; 
-        printf("command[%d] = %s\n",index,command[index]);
         index++;
         parsed=strtok(NULL,"|");
-        /*if((parsed!=NULL)) {
+        if(parsed!=NULL) {
             remove_spaces(parsed);
-        }*/
-        
+        }   
     }
     command[index]=NULL;
     return command;
