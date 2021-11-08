@@ -240,6 +240,7 @@ int main() {
                         pid_t pid;
                         index=0;
 
+
                         for(i=0;i<pipe_count;i++) {
                             if(pipe(fd[i])<0) {
                                 perror("Pipe error");
@@ -256,34 +257,60 @@ int main() {
                                 exit(EXIT_FAILURE);
                             }else if(pid==0) {
                                 token=strtok(command[index]," ");
-                                printf("command[%d] = %s\n",index,command[index]);
                                 while(token!=NULL) {
-                                    token=strtok(NULL," ");
                                     argv[count]=token;
+                                    token=strtok(NULL," ");
+                                   // printf("argv[%d] = %s\n",count,argv[count]);
                                     count++;
                                 }
                                 argv[count]=NULL;
 
-                                if(index!=commands_number) {
-                                    if(dup2(fd[index][1],STDOUT_FILENO)<0) {
+                              //  printf("command = %s\n",command[index]);
+
+                                
+
+                                if(index!=commands_number-1) {
+                                    if(dup2(fd[index][1],1)<0) {
+                                        printf("index = %d\n",index);
                                         perror("Dup2 error");
                                         exit(EXIT_FAILURE);
                                     }
                                 }
 
                                 if(index!=0) {
-                                    if(dup2(fd[index][0],STDIN_FILENO)<0) {
-                                        perror("Dup2 error");
+                                    if(dup2(fd[index-1][0],0)<0) {
+                                        printf("index STDIN = %d\n",index);
+                                        perror("Dup2 error STDIN");
                                         exit(EXIT_FAILURE);
                                     }
                                 }
 
-                                execvp(command[index],argv);
+
+                               /* for(i=0;i<commands_number;i++) {
+                                    close(fd[i][0]);
+                                    close(fd[i][1]);
+                                }*/
+
+                               if(execvp(command[index],argv)<0) {
+                                   perror(command[index]);
+                                   exit(EXIT_FAILURE);
+                               }
+
+
+
                             }else{
+                              /*  for(i=0;i<pipe_count;i++) {
+                                    wait(NULL);
+                                }*/
+
                                 wait(NULL);
-                                
+
+                             /*   for(i=0;i<commands_number;i++) {
+                                    close(fd[i][0]);
+                                    close(fd[i][1]);
+                                }*/
                             }
-                            index++;
+                           index++;
                         }
         
                     }
@@ -338,8 +365,10 @@ int main() {
                 }else if(pid==0) {
                     /*Child code*/
                     token=strtok(command[index]," ");
+                  //  printf("command[%d] = %s\n",index,command[index]);
                     while(token!=NULL) {
                         argv[count]=token;
+                      //  printf("Sequence argv[%d] = %s\n",count,argv[count]);
                         token=strtok(NULL," ");
                         count++;
                     }
@@ -398,9 +427,10 @@ char **get_sequential_command(char *input) {
     char *parsed;
     int index=0;
     parsed=strtok(input,";");
+  //  printf("parsed = %s\n",parsed);
     while(parsed!=NULL) {
         command[index]=parsed;
-     //   printf("command[%d] = %s\n",index,command[index]);
+      //  printf("command[%d] = %s\n",index,command[index]);
         index++;
         parsed=strtok(NULL,";");
         if(parsed!=NULL) {
@@ -507,7 +537,6 @@ char **get_pipe1_command(char *input) {
     parsed=strtok(input," ");
     while(strchr(parsed,'|')==NULL) {
         command[index]=parsed;
-        printf("%s\n",command[index]);
         index++;
         parsed=strtok(NULL," ");
     }
@@ -531,17 +560,21 @@ char **get_pipe2_command(char *input) {
 }
 
 char **get_multipipe_command(char *input) {
+    printf("input = %s\n",input);
     char **command=malloc(100*sizeof(char *));
     char *parsed;
     int index=0;
     parsed=strtok(input,"|");
+  //  printf("parsed = %s\n",parsed);
     while(parsed!=NULL) {
         command[index]=parsed; 
-        parsed=strtok(NULL,"|");
-        if((parsed!=NULL)) {
-            remove_spaces(parsed);
-        }
+        printf("command[%d] = %s\n",index,command[index]);
         index++;
+        parsed=strtok(NULL,"|");
+        /*if((parsed!=NULL)) {
+            remove_spaces(parsed);
+        }*/
+        
     }
     command[index]=NULL;
     return command;
